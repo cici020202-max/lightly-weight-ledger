@@ -1,0 +1,6 @@
+// Local preview server; refreshes the page when HTML, CSS or JavaScript changes.
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
+const root=__dirname,port=Number(process.env.PORT)||4173;
+const reload=`<script>let version;setInterval(async()=>{try{const r=await fetch('/__version');const n=await r.text();if(version&&version!==n)location.reload();version=n}catch{}},1200)</script>`;
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.md':'text/plain; charset=utf-8'};
+http.createServer((req,res)=>{if(req.url==='/__version'){res.end(['index.html','styles.css','app.js'].map(f=>fs.statSync(path.join(root,f)).mtimeMs).join('-'));return}let file;try{file=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]==='/'?'/index.html':req.url.split('?')[0]))}catch{res.writeHead(400).end();return}if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return}fs.readFile(file,(err,data)=>{if(err){res.writeHead(404).end('Not found');return}res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');res.setHeader('Cache-Control','no-store');res.end(path.extname(file)==='.html'?data.toString().replace('</body>',reload+'</body>'):data)})}).listen(port,'127.0.0.1',()=>console.log(`Local: http://127.0.0.1:${port}`));
